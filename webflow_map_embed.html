@@ -1,0 +1,750 @@
+<div class="map-filters">
+  <select id="layerFilter">
+    <option value="both">HPSA Areas + Hiring Sites</option>
+    <option value="hpsa">HPSA Areas Only</option>
+    <option value="hiring">Hiring Sites Only</option>
+  </select>
+
+  <input id="locationFilter" type="text" placeholder="City, State, or ZIP">
+
+  <select id="distanceFilter">
+    <option value="any">Any distance</option>
+    <option value="25">25 miles</option>
+    <option value="50">50 miles</option>
+    <option value="100">100 miles</option>
+    <option value="250">250 miles</option>
+  </select>
+
+  <select id="specialtyFilter">
+    <option value="all">All specialties</option>
+  </select>
+
+  <select id="scoreFilter">
+    <option value="0">Any HPSA score</option>
+    <option value="10">Score 10+</option>
+    <option value="17">Score 17+</option>
+    <option value="22">Score 22+</option>
+  </select>
+
+  <button id="applyFilters" type="button">Search</button>
+  <button id="resetFilters" type="button">Reset</button>
+</div>
+
+<div id="resultCount" class="map-result-count">Loading map data...</div>
+
+<div id="combinedMap" style="height:650px; width:100%; border-radius:16px; overflow:hidden;"></div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap');
+
+.map-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+  font-family: "Geist", Arial, sans-serif;
+}
+
+.map-filters select,
+.map-filters input {
+  height: 44px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  padding: 0 16px;
+  font-family: "Geist", Arial, sans-serif;
+  font-size: 14px;
+  background: #ffffff;
+  color: #111827;
+  outline: none;
+}
+
+.map-filters input {
+  min-width: 210px;
+}
+
+.map-filters select:focus,
+.map-filters input:focus {
+  border-color: #3f2eff;
+  box-shadow: 0 0 0 3px rgba(63,46,255,.12);
+}
+
+.map-filters button {
+  height: 44px;
+  border: none;
+  border-radius: 999px;
+  padding: 0 18px;
+  font-family: "Geist", Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#applyFilters {
+  background: #3f2eff;
+  color: #ffffff;
+}
+
+#resetFilters {
+  background: #f1f5f9;
+  color: #111827;
+}
+
+.map-result-count {
+  margin: 0 0 14px 2px;
+  font-family: "Geist", Arial, sans-serif;
+  font-size: 14px;
+  color: #475569;
+}
+
+.leaflet-container {
+  font-family: "Geist", Arial, sans-serif;
+}
+
+.hiring-tooltip {
+  background: #ffffff !important;
+  color: #111827;
+  border: none !important;
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-family: "Geist", Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+}
+
+.hiring-tooltip::before {
+  display: none;
+}
+
+.hiring-popup .leaflet-popup-content-wrapper {
+  background: #ffffff !important;
+  border-radius: 18px;
+  padding: 0;
+  font-family: "Geist", Arial, sans-serif;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.22);
+}
+
+.hiring-popup .leaflet-popup-content {
+  background: #ffffff !important;
+  margin: 0;
+  width: 260px !important;
+}
+
+.hiring-popup .leaflet-popup-tip {
+  background: #ffffff !important;
+}
+
+.hiring-card {
+  background: #ffffff !important;
+  border-radius: 18px;
+  padding: 16px;
+  color: #0f172a;
+}
+
+.hiring-badge {
+  display: inline-block;
+  background: #F0EDF3;
+  color: #3f2eff;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.hiring-card-title {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 10px;
+}
+
+.hiring-card-address {
+  font-size: 13px;
+  line-height: 1.35;
+  color: #475569;
+  margin-bottom: 14px;
+}
+
+.hiring-card-row {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
+.hiring-card-row span {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: 3px;
+}
+
+.hiring-card-row p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.35;
+  color: #111827;
+}
+
+.hiring-card a {
+  color: #3f2eff;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.hpsa-popup .leaflet-popup-content-wrapper {
+  background: #ffffff !important;
+  border-radius: 16px;
+  font-family: "Geist", Arial, sans-serif;
+}
+
+.hpsa-popup .leaflet-popup-tip {
+  background: #ffffff !important;
+}
+
+@media (max-width: 767px) {
+  .map-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .map-filters select,
+  .map-filters input,
+  .map-filters button {
+    width: 100%;
+  }
+}
+</style>
+
+<script>
+const HPSA_URL = "https://raw.githubusercontent.com/coaxumavery5/hpsa-map-data/refs/heads/main/hpsas_simplified_tol_0p01.json";
+const HIRING_CSV_URL = "https://raw.githubusercontent.com/coaxumavery5/hpsa-map-data/main/hrsa_physician_opportunities.csv";
+
+/* Lock the map view to the continental United States. */
+const US_BOUNDS = L.latLngBounds(
+  [24.2, -125.2],  // southwest: southern California / Florida area
+  [49.4, -66.3]   // northeast: northern Maine area
+);
+
+const map = L.map("combinedMap", {
+  maxBounds: US_BOUNDS,
+  maxBoundsViscosity: 1,
+  minZoom: 4,
+  zoomSnap: 0.25
+}).fitBounds(US_BOUNDS);
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+  attribution:"&copy; OpenStreetMap contributors",
+  maxZoom:19
+}).addTo(map);
+
+map.createPane("hpsaPane");
+map.getPane("hpsaPane").style.zIndex = 400;
+
+map.createPane("markerPane");
+map.getPane("markerPane").style.zIndex = 650;
+
+let hpsaData = null;
+let hpsaLayer = null;
+let allHiringRows = [];
+let hiringLayer = L.layerGroup().addTo(map);
+let addedLayerControl = false;
+let layerControl = null;
+
+const resultCount = document.getElementById("resultCount");
+
+/* PLG HPSA palette: lower need → critical need */
+function getColor(score){
+  return score >=22 ? "#1F5A4C" :
+         score >=17 ? "#5F8F7D" :
+         score >=10 ? "#A7C7BC" :
+                       "#DCE8E4";
+}
+
+function cleanSpecialty(value) {
+  return String(value || "N/A")
+    .replace(/[\[\]']/g, "")
+    .replace("Physician, MD/DO - ", "")
+    .trim();
+}
+
+function formatPhone(phone) {
+  if (!phone) return "N/A";
+  const cleaned = String(phone).replace(/\D/g, "");
+  if (cleaned.length === 10) {
+    return `(${cleaned.slice(0,3)}) ${cleaned.slice(3,6)}-${cleaned.slice(6)}`;
+  }
+  return phone;
+}
+
+function getRowLat(row) {
+  return parseFloat(row.siteLatitude);
+}
+
+function getRowLng(row) {
+  return parseFloat(row.siteLongitude);
+}
+
+function getDistanceMiles(lat1, lon1, lat2, lon2) {
+  const R = 3958.8;
+  const toRad = deg => deg * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+async function geocodeLocation(query) {
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q=${encodeURIComponent(query)}`;
+  const response = await fetch(url);
+  const data = await response.json();
+
+  if (!data || !data.length) {
+    return null;
+  }
+
+  return {
+    lat: parseFloat(data[0].lat),
+    lng: parseFloat(data[0].lon),
+    displayName: data[0].display_name
+  };
+}
+
+function createHpsaLayer(features) {
+  if (hpsaLayer) {
+    map.removeLayer(hpsaLayer);
+  }
+
+  hpsaLayer = L.geoJSON(features, {
+    style:function(feature){
+      return{
+        pane:"hpsaPane",
+        fillColor:getColor(feature.properties.HpsScore),
+        color:"#ffffff",
+        weight:1,
+        opacity:1,
+        fillOpacity:.45
+      };
+    },
+
+    onEachFeature:function(feature,layer){
+      const p = feature.properties;
+
+      layer.bindPopup(`
+        <div style="font-family:Geist, Arial, sans-serif; line-height:1.5;">
+          <strong>${p.HpsNM}</strong><br>
+          <strong>Score:</strong> ${p.HpsScore}<br>
+          <strong>Type:</strong> ${p.HpsTypDes}<br>
+          <strong>State:</strong> ${p.PriStNM}<br>
+          <strong>Status:</strong> ${p.HpsStatDes}<br>
+          <strong>FTE Needed:</strong> ${p.HpsFte}
+        </div>
+      `,{
+        className:"hpsa-popup"
+      });
+
+      layer.on({
+        mouseover:function(e){
+          e.target.setStyle({
+            weight:3,
+            color:"#000",
+            fillOpacity:.75
+          });
+        },
+        mouseout:function(e){
+          hpsaLayer.resetStyle(e.target);
+        }
+      });
+    }
+  });
+
+  return hpsaLayer;
+}
+
+function renderHiringMarkers(rows) {
+  hiringLayer.clearLayers();
+
+  const bounds = [];
+
+  rows.forEach(function(row){
+    const lat = getRowLat(row);
+    const lng = getRowLng(row);
+
+    if(isNaN(lat)||isNaN(lng)) return;
+
+    const phoneFormatted = formatPhone(row.sitePhoneNumber);
+    const phoneHref = String(row.sitePhoneNumber || "").replace(/\D/g, "");
+    const specialty = cleanSpecialty(row.disciplineSpecialty);
+
+    const marker = L.circleMarker([lat,lng],{
+      pane:"markerPane",
+      radius:6,
+      fillColor:"#3f2eff",
+      color:"#fff",
+      weight:2,
+      opacity:1,
+      fillOpacity:1
+    }).addTo(hiringLayer);
+
+    marker.bindTooltip(`
+      <div>
+        <strong>${row.siteName || "Hiring Site"}</strong><br>
+        ${row.siteCity || ""}, ${row.siteStateAbbreviation || ""}
+      </div>
+    `,{
+      className:"hiring-tooltip",
+      direction:"top",
+      offset:[0,-8],
+      opacity:1
+    });
+
+    marker.bindPopup(`
+      <div class="hiring-card">
+        <div class="hiring-badge">Hiring Opportunity</div>
+
+        <div class="hiring-card-title">
+          ${row.siteName || "Hiring Site"}
+        </div>
+
+        <div class="hiring-card-address">
+          ${row.siteAddressLine1 || ""}<br>
+          ${row.siteCity || ""}, ${row.siteStateAbbreviation || ""}
+        </div>
+
+        <div class="hiring-card-row">
+          <span>Specialty</span>
+          <p>${specialty}</p>
+        </div>
+
+        <div class="hiring-card-row">
+          <span>Phone</span>
+          <p>
+            ${
+              phoneHref
+              ? `<a href="tel:${phoneHref}">${phoneFormatted}</a>`
+              : "N/A"
+            }
+          </p>
+        </div>
+      </div>
+    `,{
+      className:"hiring-popup",
+      maxWidth:280
+    });
+
+    marker.on("mouseover", function(){
+      marker.setStyle({
+        radius:9,
+        fillColor:"#1d4ed8"
+      });
+      marker.openTooltip();
+    });
+
+    marker.on("mouseout", function(){
+      marker.setStyle({
+        radius:6,
+        fillColor:"#3f2eff"
+      });
+      marker.closeTooltip();
+    });
+
+    marker.on("click", function(){
+      marker.openPopup();
+    });
+
+    bounds.push([lat,lng]);
+  });
+
+  return bounds;
+}
+
+function populateSpecialtyFilter(rows) {
+  const specialtyFilter = document.getElementById("specialtyFilter");
+  const specialties = new Set();
+
+  rows.forEach(row => {
+    const specialty = cleanSpecialty(row.disciplineSpecialty);
+    if (specialty && specialty !== "N/A") {
+      specialties.add(specialty);
+    }
+  });
+
+  [...specialties].sort().forEach(specialty => {
+    const option = document.createElement("option");
+    option.value = specialty;
+    option.textContent = specialty;
+    specialtyFilter.appendChild(option);
+  });
+}
+
+function updateVisibleLayers(layerChoice) {
+  if (hpsaLayer) {
+    if (layerChoice === "both" || layerChoice === "hpsa") {
+      if (!map.hasLayer(hpsaLayer)) map.addLayer(hpsaLayer);
+    } else {
+      if (map.hasLayer(hpsaLayer)) map.removeLayer(hpsaLayer);
+    }
+  }
+
+  if (layerChoice === "both" || layerChoice === "hiring") {
+    if (!map.hasLayer(hiringLayer)) map.addLayer(hiringLayer);
+  } else {
+    if (map.hasLayer(hiringLayer)) map.removeLayer(hiringLayer);
+  }
+}
+
+function filterHpsas(minScore, locationQuery) {
+  if (!hpsaData) return null;
+
+  const query = locationQuery.trim().toLowerCase();
+
+  const filteredFeatures = hpsaData.features.filter(feature => {
+    const p = feature.properties || {};
+    const score = Number(p.HpsScore || 0);
+
+    if (score < minScore) return false;
+
+    if (!query) return true;
+
+    const state = String(p.PriStNM || "").toLowerCase();
+    const name = String(p.HpsNM || "").toLowerCase();
+    const type = String(p.HpsTypDes || "").toLowerCase();
+
+    return state.includes(query) || name.includes(query) || type.includes(query);
+  });
+
+  return {
+    type: "FeatureCollection",
+    features: filteredFeatures
+  };
+}
+
+async function applyFilters() {
+  const layerChoice = document.getElementById("layerFilter").value;
+  const locationQuery = document.getElementById("locationFilter").value.trim();
+  const distanceValue = document.getElementById("distanceFilter").value;
+  const specialtyValue = document.getElementById("specialtyFilter").value;
+  const minScore = Number(document.getElementById("scoreFilter").value || 0);
+
+  resultCount.textContent = "Applying filters...";
+
+  let filteredHiring = [...allHiringRows];
+
+  if (specialtyValue !== "all") {
+    filteredHiring = filteredHiring.filter(row => cleanSpecialty(row.disciplineSpecialty) === specialtyValue);
+  }
+
+  if (locationQuery) {
+    const statePattern = /^[A-Za-z]{2}$/;
+    const zipPattern = /^\d{5}$/;
+    const hasDistanceRadius = distanceValue !== "any";
+
+    /*
+      Distance logic:
+      - If user chooses a distance, geocode whatever they typed
+        (city, state, or ZIP) and filter by radius.
+      - If user leaves distance as "Any distance":
+          - 2 letters = filter by state abbreviation
+          - 5 digits = filter by ZIP if ZIP exists in CSV
+          - anything else = text match against city/site/state
+    */
+
+    if (hasDistanceRadius) {
+      const geocoded = await geocodeLocation(locationQuery);
+
+      if (!geocoded) {
+        resultCount.textContent = "Location not found. Try a city, state, or ZIP.";
+        return;
+      }
+
+      const radius = Number(distanceValue);
+
+      filteredHiring = filteredHiring.filter(row => {
+        const lat = getRowLat(row);
+        const lng = getRowLng(row);
+        if (isNaN(lat) || isNaN(lng)) return false;
+
+        return getDistanceMiles(geocoded.lat, geocoded.lng, lat, lng) <= radius;
+      });
+
+      const zoomLevel =
+        radius <= 25 ? 9 :
+        radius <= 50 ? 8 :
+        radius <= 100 ? 7 :
+        6;
+
+      map.setView([geocoded.lat, geocoded.lng], zoomLevel);
+
+    } else if (statePattern.test(locationQuery)) {
+      filteredHiring = filteredHiring.filter(row =>
+        String(row.siteStateAbbreviation || "").toUpperCase() === locationQuery.toUpperCase()
+      );
+
+    } else if (zipPattern.test(locationQuery)) {
+      filteredHiring = filteredHiring.filter(row => {
+        const zip = String(
+          row.sitePostalCode ||
+          row.siteZipCode ||
+          row.siteZip ||
+          row.zip ||
+          row.postalCode ||
+          ""
+        );
+
+        return zip.startsWith(locationQuery);
+      });
+
+      /*
+        If your hiring CSV does not contain ZIP codes, exact ZIP filtering may return 0.
+        In that case, choose a distance like 25 or 50 miles and the ZIP will be geocoded instead.
+      */
+
+    } else {
+      const q = locationQuery.toLowerCase();
+
+      filteredHiring = filteredHiring.filter(row => {
+        const city = String(row.siteCity || "").toLowerCase();
+        const site = String(row.siteName || "").toLowerCase();
+        const state = String(row.siteStateAbbreviation || "").toLowerCase();
+
+        return city.includes(q) || site.includes(q) || state.includes(q);
+      });
+    }
+  }
+
+  const hiringBounds = renderHiringMarkers(filteredHiring);
+
+  const filteredHpsas = filterHpsas(minScore, locationQuery);
+  if (filteredHpsas) {
+    createHpsaLayer(filteredHpsas);
+  }
+
+  updateVisibleLayers(layerChoice);
+
+  if (hiringBounds.length && (layerChoice === "both" || layerChoice === "hiring")) {
+    map.fitBounds(hiringBounds, {
+      padding: [30, 30],
+      maxZoom: 11
+    });
+  } else if (hpsaLayer && hpsaLayer.getBounds().isValid() && (layerChoice === "both" || layerChoice === "hpsa")) {
+    map.fitBounds(hpsaLayer.getBounds(), { padding: [30, 30] });
+  }
+
+  resultCount.textContent = `Showing ${filteredHiring.length} hiring site(s) and ${filteredHpsas ? filteredHpsas.features.length : 0} HPSA area(s).`;
+}
+
+function resetFilters() {
+  document.getElementById("layerFilter").value = "both";
+  document.getElementById("locationFilter").value = "";
+  document.getElementById("distanceFilter").value = "any";
+  document.getElementById("specialtyFilter").value = "all";
+  document.getElementById("scoreFilter").value = "0";
+
+  if (hpsaData) {
+    createHpsaLayer(hpsaData);
+  }
+
+  const bounds = renderHiringMarkers(allHiringRows);
+  updateVisibleLayers("both");
+
+  if (bounds.length) {
+    map.fitBounds(bounds, { padding: [30, 30] });
+  }
+
+  resultCount.textContent = `Showing ${allHiringRows.length} hiring site(s) and ${hpsaData ? hpsaData.features.length : 0} HPSA area(s).`;
+}
+
+function addLayerControl(){
+  if(addedLayerControl || !hpsaLayer) return;
+
+  layerControl = L.control.layers(
+    null,
+    {
+      "HPSA Areas":hpsaLayer,
+      "Hiring Opportunities":hiringLayer
+    }
+  ).addTo(map);
+
+  addedLayerControl=true;
+}
+
+document.getElementById("applyFilters").addEventListener("click", applyFilters);
+document.getElementById("resetFilters").addEventListener("click", resetFilters);
+document.getElementById("locationFilter").addEventListener("keydown", function(e) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    applyFilters();
+  }
+});
+
+fetch(HPSA_URL)
+.then(r=>r.json())
+.then(data=>{
+  hpsaData = data;
+  createHpsaLayer(hpsaData).addTo(map);
+  addLayerControl();
+
+  resultCount.textContent = "HPSA areas loaded. Loading hiring sites...";
+});
+
+Papa.parse(HIRING_CSV_URL, {
+  download:true,
+  header:true,
+
+  complete:function(results){
+    allHiringRows = results.data.filter(row => {
+      const lat = getRowLat(row);
+      const lng = getRowLng(row);
+      return !isNaN(lat) && !isNaN(lng);
+    });
+
+    populateSpecialtyFilter(allHiringRows);
+    const bounds = renderHiringMarkers(allHiringRows);
+
+    if(bounds.length){
+      map.fitBounds(bounds, { padding: [30, 30] });
+    }
+
+    addLayerControl();
+
+    resultCount.textContent = `Showing ${allHiringRows.length} hiring site(s) and ${hpsaData ? hpsaData.features.length : 0} HPSA area(s).`;
+  }
+});
+
+const legend=L.control({position:"bottomright"});
+
+legend.onAdd=function(){
+  const div=L.DomUtil.create("div");
+
+  div.style.background="white";
+  div.style.padding="12px";
+  div.style.borderRadius="10px";
+  div.style.boxShadow="0 2px 10px rgba(0,0,0,.15)";
+  div.style.fontFamily='"Geist", Arial, sans-serif';
+  div.style.fontSize="14px";
+
+  div.innerHTML=`
+    <strong>HPSA Score</strong><br><br>
+    <div><span style="display:inline-block;width:14px;height:14px;background:#1F5A4C;margin-right:8px;"></span>22–26 Critical</div>
+    <div><span style="display:inline-block;width:14px;height:14px;background:#5F8F7D;margin-right:8px;"></span>17–21 High</div>
+    <div><span style="display:inline-block;width:14px;height:14px;background:#A7C7BC;margin-right:8px;"></span>10–16 Moderate</div>
+    <div><span style="display:inline-block;width:14px;height:14px;background:#DCE8E4;margin-right:8px;"></span>0–9 Lower Need</div>
+  `;
+
+  return div;
+};
+
+legend.addTo(map);
+</script>

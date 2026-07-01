@@ -1,0 +1,257 @@
+<div id="plg-scroll-nav" class="plg-scroll-nav">
+  <a class="plg-brand" href="/" aria-label="Physician Law Group home">
+    PLG
+  </a>
+
+  <nav class="plg-nav-pill" aria-label="Primary navigation">
+    <a href="/">Home</a>
+    <a href="/blog">Blog</a>
+    <a href="/events">Events</a>
+    <a href="/get-involved" class="is-active">Get Involved</a>
+  </nav>
+
+  <a class="plg-contact-button" href="mailto:hello@physicianlawgroup.com">
+    Contact Us
+  </a>
+</div>
+
+<style>
+  .plg-scroll-nav {
+    position: fixed;
+    top: 28px;
+    left: 0;
+    width: 100%;
+    z-index: 9999;
+
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 18px;
+
+    padding: 0 5.5vw;
+    box-sizing: border-box;
+    pointer-events: none;
+
+    transform: translateY(0);
+    opacity: 1;
+    transition: transform 0.35s ease, opacity 0.25s ease;
+  }
+
+  /* Slides away when scrolling down */
+  .plg-scroll-nav.is-hidden {
+    transform: translateY(calc(-100% - 55px));
+    opacity: 0;
+  }
+
+  .plg-brand,
+  .plg-nav-pill,
+  .plg-contact-button {
+    pointer-events: auto;
+  }
+
+  /* PLG logo */
+  .plg-brand {
+    justify-self: start;
+
+    color: #ffffff;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 27px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    text-decoration: none;
+
+    transition: color 0.25s ease;
+  }
+
+  /* Turns black after scrolling past the hero */
+  .plg-scroll-nav.past-hero .plg-brand {
+    color: #000000;
+  }
+
+  /* Center pill */
+  .plg-nav-pill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 58px;
+    padding: 5px;
+
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    background: rgba(112, 92, 80, 0.62);
+
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+
+    box-shadow:
+      0 10px 30px rgba(0, 0, 0, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .plg-nav-pill a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 48px;
+    padding: 0 15px;
+
+    border-radius: 999px;
+    color: #ffffff;
+
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+
+    transition:
+      background-color 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .plg-nav-pill a:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .plg-nav-pill a:active {
+    transform: scale(0.97);
+  }
+
+  /* Active page — no lighter shadow underneath */
+  .plg-nav-pill a.is-active {
+    background: rgba(55, 58, 55, 0.72);
+    box-shadow: none;
+  }
+
+  /* Contact button */
+  .plg-contact-button {
+    justify-self: end;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 52px;
+    padding: 0 23px;
+
+    border-radius: 999px;
+    background: #4033fe;
+    color: #ffffff;
+
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    text-decoration: none;
+
+    transition:
+      transform 0.2s ease,
+      background-color 0.2s ease;
+  }
+
+  .plg-contact-button:hover {
+    background: #3024dc;
+    transform: translateY(-2px);
+  }
+
+  /* Tablet */
+  @media screen and (max-width: 950px) {
+    .plg-scroll-nav {
+      top: 20px;
+      padding: 0 28px;
+    }
+
+    .plg-brand {
+      font-size: 24px;
+    }
+
+    .plg-nav-pill a {
+      padding: 0 11px;
+      font-size: 14px;
+    }
+
+    .plg-contact-button {
+      padding: 0 18px;
+      font-size: 14px;
+    }
+  }
+
+  /* Mobile */
+  @media screen and (max-width: 700px) {
+    .plg-scroll-nav {
+      top: 16px;
+      display: flex;
+      justify-content: center;
+      padding: 0 12px;
+    }
+
+    .plg-brand,
+    .plg-contact-button {
+      display: none;
+    }
+
+    .plg-nav-pill {
+      width: min(100%, 560px);
+    }
+
+    .plg-nav-pill a {
+      flex: 1;
+      min-width: 0;
+      padding: 0 6px;
+      font-size: 11px;
+    }
+  }
+</style>
+
+<script>
+  (function () {
+    const nav = document.getElementById("plg-scroll-nav");
+
+    if (!nav) return;
+
+    let lastScrollPosition = window.scrollY;
+    let isTicking = false;
+    const movementThreshold = 8;
+
+    function updateNavigation() {
+      const currentScrollPosition = window.scrollY;
+
+      /* PLG turns black after the first full-screen hero */
+      if (currentScrollPosition >= window.innerHeight) {
+        nav.classList.add("past-hero");
+      } else {
+        nav.classList.remove("past-hero");
+      }
+
+      /* Hide scrolling down; show scrolling up */
+      if (currentScrollPosition < 80) {
+        nav.classList.remove("is-hidden");
+      } else if (currentScrollPosition > lastScrollPosition + movementThreshold) {
+        nav.classList.add("is-hidden");
+      } else if (currentScrollPosition < lastScrollPosition - movementThreshold) {
+        nav.classList.remove("is-hidden");
+      }
+
+      lastScrollPosition = currentScrollPosition;
+      isTicking = false;
+    }
+
+    window.addEventListener(
+      "scroll",
+      function () {
+        if (!isTicking) {
+          window.requestAnimationFrame(updateNavigation);
+          isTicking = true;
+        }
+      },
+      { passive: true }
+    );
+
+    window.addEventListener("resize", updateNavigation);
+
+    updateNavigation();
+  })();
+</script>
